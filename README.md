@@ -24,7 +24,7 @@ Peacock is an open-source server emulator that replaces IOI's online servers loc
 ## Installation — 2 steps total
 
 ### Step 1 — Install (once)
-Double-click **`1_INSTALLIEREN.command`**
+Double-click **`1_INSTALL.command`**
 
 The installer will automatically:
 - Download Peacock v8.8.1
@@ -41,7 +41,7 @@ You will be asked for your **admin password once** (needed to modify `/etc/hosts
 > Right-click → **Open** → **Open** to bypass Gatekeeper.
 
 ### Step 2 — Play (every time)
-Double-click **`2_STARTEN.command`**, enter your admin password, then launch Hitman WOA.
+Double-click **`2_START.command`**, enter your admin password, then launch Hitman WOA.
 
 Keep the Terminal window open while playing. Close it with **Ctrl+C** when done.
 
@@ -87,9 +87,9 @@ The proxy approach is necessary because the official Peacock Patcher only patche
 
 ```
 Peacock-Mac/
-├── 1_INSTALLIEREN.command   ← Run once to install
-├── 2_STARTEN.command        ← Run before every play session
-├── STOPPEN.command          ← Stop all servers
+├── 1_INSTALL.command   ← Run once to install
+├── 2_START.command     ← Run before every play session
+├── STOP.command        ← Stop all servers
 └── tools/
     ├── auth-proxy.js        ← Injects JWT tokens into game requests
     ├── https-proxy.js       ← SSL termination proxy

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ══════════════════════════════════════════════════════
-#   Peacock starten — vor jedem Hitman-WOA-Start
+#   Start Peacock — run before every Hitman WOA session
 # ══════════════════════════════════════════════════════
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -17,21 +17,21 @@ echo "║         Peacock Server — Hitman WOA (Mac)           ║"
 echo "╚══════════════════════════════════════════════════════╝"
 printf "${NC}\n"
 
-fail() { printf "${RD}❌ $1${NC}\n"; read -p "Enter..."; exit 1; }
+fail() { printf "${RD}❌ $1${NC}\n"; read -p "Press Enter to exit..."; exit 1; }
 
-# Prüfen ob installiert
-[ -f "$PEACOCK_DIR/chunk0.js" ] || fail "Peacock nicht gefunden. Erst 1_INSTALLIEREN.command ausführen!"
-[ -f "$DIR/tools/auth-proxy.js" ] || fail "auth-proxy.js fehlt. Neuinstallation nötig."
-[ -f "$CFG" ] || fail "Konfiguration fehlt. Erst 1_INSTALLIEREN.command ausführen!"
+# Check installation
+[ -f "$PEACOCK_DIR/chunk0.js" ] || fail "Peacock not found. Run 1_INSTALL.command first!"
+[ -f "$DIR/tools/auth-proxy.js" ] || fail "auth-proxy.js missing. Reinstall needed."
+[ -f "$CFG" ] || fail "Config missing. Run 1_INSTALL.command first!"
 
-# Node.js finden
+# Find Node.js
 NODE=""
 for p in /opt/homebrew/bin/node /usr/local/bin/node "$(which node 2>/dev/null)"; do
     [ -x "$p" ] && NODE="$p" && break
 done
-[ -z "$NODE" ] && fail "Node.js nicht gefunden! https://nodejs.org installieren."
+[ -z "$NODE" ] && fail "Node.js not found! Install from https://nodejs.org"
 
-# Alte Prozesse beenden
+# Stop old processes
 if [ -f "$PID_FILE" ]; then
     while IFS= read -r pid; do kill "$pid" 2>/dev/null; done < "$PID_FILE"
     sudo pkill -f "auth-proxy.js" 2>/dev/null
@@ -41,57 +41,57 @@ if [ -f "$PID_FILE" ]; then
     sleep 1
 fi
 
-# Admin-Passwort holen (einmal für Port 80 + 443)
-printf "${YL}Admin-Passwort für Port 80/443:${NC}\n"
-sudo -v || fail "Admin-Passwort falsch."
+# Get admin password once (needed for ports 80 + 443)
+printf "${YL}Admin password for ports 80/443:${NC}\n"
+sudo -v || fail "Wrong admin password."
 
 echo ""
-printf "${YL}[1/3] Peacock starten...${NC}\n"
+printf "${YL}[1/3] Starting Peacock...${NC}\n"
 cd "$PEACOCK_DIR"
 PORT=3000 "$NODE" chunk0.js >> peacock.log 2>&1 &
 P1=$!
 sleep 2
-kill -0 $P1 2>/dev/null || fail "Peacock konnte nicht starten. Log: $PEACOCK_DIR/peacock.log"
-printf "   ${GN}✅ Peacock (Port 3000)${NC}\n"
+kill -0 $P1 2>/dev/null || fail "Peacock failed to start. Log: $PEACOCK_DIR/peacock.log"
+printf "   ${GN}✅ Peacock (port 3000)${NC}\n"
 
-printf "${YL}[2/3] Auth-Proxy starten...${NC}\n"
+printf "${YL}[2/3] Starting auth proxy...${NC}\n"
 cd "$DIR"
 sudo "$NODE" tools/auth-proxy.js >> auth-proxy.log 2>&1 &
 P2=$!
 sleep 2
-kill -0 $P2 2>/dev/null || { kill $P1; fail "Auth-Proxy konnte nicht starten."; }
-printf "   ${GN}✅ Auth-Proxy (Port 80)${NC}\n"
+kill -0 $P2 2>/dev/null || { kill $P1; fail "Auth proxy failed to start."; }
+printf "   ${GN}✅ Auth proxy (port 80)${NC}\n"
 
-printf "${YL}[3/3] HTTPS-Proxy starten...${NC}\n"
+printf "${YL}[3/3] Starting HTTPS proxy...${NC}\n"
 sudo "$NODE" tools/https-proxy.js >> https-proxy.log 2>&1 &
 P3=$!
 sleep 1
-kill -0 $P3 2>/dev/null || { kill $P1; sudo kill $P2; fail "HTTPS-Proxy konnte nicht starten."; }
-printf "   ${GN}✅ HTTPS-Proxy (Port 443)${NC}\n"
+kill -0 $P3 2>/dev/null || { kill $P1; sudo kill $P2; fail "HTTPS proxy failed to start."; }
+printf "   ${GN}✅ HTTPS proxy (port 443)${NC}\n"
 
-# PIDs speichern
+# Save PIDs
 printf "%s\n%s\n%s\n" "$P1" "$P2" "$P3" > "$PID_FILE"
 
 printf "\n${CY}"
 echo "╔══════════════════════════════════════════════════════╗"
-echo "║              ✅  ALLE SERVER LAUFEN                 ║"
+echo "║              ✅  ALL SERVERS RUNNING                ║"
 echo "╠══════════════════════════════════════════════════════╣"
 echo "║                                                      ║"
-echo "║   👉  Jetzt Hitman WOA starten!                     ║"
+echo "║   👉  Launch Hitman WOA now!                        ║"
 echo "║                                                      ║"
-echo "║   Dieses Fenster offen lassen während du spielst.   ║"
-echo "║   Zum Stoppen: Ctrl+C                               ║"
+echo "║   Keep this window open while playing.              ║"
+echo "║   Press Ctrl+C to stop all servers.                 ║"
 echo "╚══════════════════════════════════════════════════════╝"
 printf "${NC}\n"
-printf "${YL}── Live-Log ───────────────────────────────────────────${NC}\n"
+printf "${YL}── Live log ────────────────────────────────────────────${NC}\n"
 
 trap "
 echo ''
-printf '${YL}Stoppe Server...${NC}\n'
+printf '${YL}Stopping servers...${NC}\n'
 sudo kill \$P2 \$P3 2>/dev/null
 kill \$P1 2>/dev/null
 rm -f '$PID_FILE'
-printf '${GN}Gestoppt.${NC}\n'
+printf '${GN}Stopped.${NC}\n'
 exit 0
 " INT TERM
 
