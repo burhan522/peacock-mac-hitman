@@ -1,0 +1,8 @@
+Peacock/
+ssl/
+.config.json
+*.log
+*.zip
+.DS_Store
+.pids
+upload-to-github.command
