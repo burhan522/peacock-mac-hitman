@@ -80,6 +80,18 @@ fi
 # ── 4. Create SSL certificate ───────────────────────────
 step "4/7" "Creating SSL certificate for *.hitman.io"
 mkdir -p "$SSL_DIR"
+# macOS rejects TLS certs with validity > 398 days — auto-regen if old cert exceeds limit
+if [ -f "$SSL_DIR/hitman-server.crt" ]; then
+    NB=$(openssl x509 -startdate -noout -in "$SSL_DIR/hitman-server.crt" 2>/dev/null | cut -d= -f2)
+    NA=$(openssl x509 -enddate   -noout -in "$SSL_DIR/hitman-server.crt" 2>/dev/null | cut -d= -f2)
+    S=$(date -j -f "%b %e %H:%M:%S %Y %Z" "$NB" +%s 2>/dev/null)
+    E=$(date -j -f "%b %e %H:%M:%S %Y %Z" "$NA" +%s 2>/dev/null)
+    VDAYS=$(( (E - S) / 86400 ))
+    if [ "$VDAYS" -gt 398 ]; then
+        printf "   ${YL}⚠️  Old cert has ${VDAYS}-day validity — macOS blocks > 398 days. Regenerating...${NC}\n"
+        rm -f "$SSL_DIR/"*.crt "$SSL_DIR/"*.key "$SSL_DIR/"*.csr "$SSL_DIR/"*.srl
+    fi
+fi
 if [ -f "$SSL_DIR/hitman-ca.crt" ]; then
     ok "Certificate already present — skipped"
 else
@@ -101,7 +113,7 @@ basicConstraints=CA:FALSE
 keyUsage=digitalSignature,keyEncipherment
 extendedKeyUsage=serverAuth
 EXTEOF
-    openssl x509 -req -days 3650 \
+    openssl x509 -req -days 397 \
         -in "$SSL_DIR/hitman-server.csr" \
         -CA "$SSL_DIR/hitman-ca.crt" \
         -CAkey "$SSL_DIR/hitman-ca.key" -CAcreateserial \

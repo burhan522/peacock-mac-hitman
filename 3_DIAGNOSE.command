@@ -57,7 +57,6 @@ echo ""
 echo "[3] SSL certificate trust"
 if security find-certificate -c "Hitman Peacock CA" /Library/Keychains/System.keychain >/dev/null 2>&1; then
     ok "CA certificate in System Keychain"
-    # Check if it's trusted for SSL
     TRUST=$(security dump-trust-settings -d 2>/dev/null | grep -A5 "Hitman Peacock" | grep "ssl" | head -1)
     if [ -n "$TRUST" ]; then
         ok "Certificate trusted for SSL"
@@ -68,6 +67,20 @@ else
     fail "CA certificate NOT in System Keychain"
     echo "      Fix: sudo security add-trusted-cert -d -r trustRoot -p ssl \\"
     echo "           -k /Library/Keychains/System.keychain \"$DIR/ssl/hitman-ca.crt\""
+fi
+# Check server cert validity — macOS rejects certs with > 398-day validity
+if [ -f "$DIR/ssl/hitman-server.crt" ]; then
+    NB=$(openssl x509 -startdate -noout -in "$DIR/ssl/hitman-server.crt" 2>/dev/null | cut -d= -f2)
+    NA=$(openssl x509 -enddate   -noout -in "$DIR/ssl/hitman-server.crt" 2>/dev/null | cut -d= -f2)
+    S=$(date -j -f "%b %e %H:%M:%S %Y %Z" "$NB" +%s 2>/dev/null)
+    E=$(date -j -f "%b %e %H:%M:%S %Y %Z" "$NA" +%s 2>/dev/null)
+    VDAYS=$(( (E - S) / 86400 ))
+    if [ "$VDAYS" -gt 398 ]; then
+        fail "SSL cert validity is ${VDAYS} days — macOS silently rejects certs > 398 days"
+        echo "      Fix: rm -rf \"$DIR/ssl\" && run 1_INSTALL.command again"
+    else
+        ok "SSL cert validity: ${VDAYS} days (within macOS 398-day limit)"
+    fi
 fi
 echo ""
 
