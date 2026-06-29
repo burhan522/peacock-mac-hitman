@@ -87,12 +87,20 @@ else
     openssl req -new -x509 -days 3650 \
         -key "$SSL_DIR/hitman-ca.key" \
         -out "$SSL_DIR/hitman-ca.crt" \
-        -subj "/CN=Hitman Peacock CA/O=Peacock" 2>/dev/null
+        -subj "/CN=Hitman Peacock CA/O=Peacock" \
+        -addext "basicConstraints=CA:TRUE" \
+        -addext "keyUsage=keyCertSign,cRLSign" 2>/dev/null
     openssl genrsa -out "$SSL_DIR/hitman-server.key" 2048 2>/dev/null
     openssl req -new -key "$SSL_DIR/hitman-server.key" \
         -out "$SSL_DIR/hitman-server.csr" \
         -subj "/CN=*.hitman.io/O=Peacock" 2>/dev/null
-    printf "[SAN]\nsubjectAltName=DNS:*.hitman.io,DNS:hitman.io\n" > "$SSL_DIR/san.ext"
+    cat > "$SSL_DIR/san.ext" << 'EXTEOF'
+[SAN]
+subjectAltName=DNS:*.hitman.io,DNS:hitman.io
+basicConstraints=CA:FALSE
+keyUsage=digitalSignature,keyEncipherment
+extendedKeyUsage=serverAuth
+EXTEOF
     openssl x509 -req -days 3650 \
         -in "$SSL_DIR/hitman-server.csr" \
         -CA "$SSL_DIR/hitman-ca.crt" \
@@ -134,7 +142,7 @@ fi
 if security find-certificate -c "Hitman Peacock CA" /Library/Keychains/System.keychain >/dev/null 2>&1; then
     ok "SSL certificate already trusted"
 else
-    sudo security add-trusted-cert -d -r trustRoot \
+    sudo security add-trusted-cert -d -r trustRoot -p ssl \
         -k /Library/Keychains/System.keychain "$SSL_DIR/hitman-ca.crt"
     ok "SSL certificate added to Keychain"
 fi

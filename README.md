@@ -62,6 +62,34 @@ Keep the Terminal window open while playing. Close it with **Ctrl+C** when done.
 
 ---
 
+## Troubleshooting
+
+**Game shows "Offline" after starting servers**
+
+Run **`3_DIAGNOSE.command`** — it checks every component and tells you exactly what's wrong.
+
+Most common cause: the SSL certificate isn't trusted. Fix:
+1. Open **Keychain Access** → search for **"Hitman Peacock CA"**
+2. Double-click it → **Trust** → **SSL: Always Trust**
+
+Or reinstall the certificate:
+```bash
+sudo security add-trusted-cert -d -r trustRoot -p ssl \
+  -k /Library/Keychains/System.keychain ssl/hitman-ca.crt
+```
+
+**Log shows "Failed to get entitlements from Steam: 500"**
+
+This is a **warning only** — not a real error. The game should still work. Peacock uses the locally configured DLCs, not Steam's response.
+
+**DNS not redirecting (game still contacts IOI servers)**
+
+```bash
+sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder
+```
+
+---
+
 ## Known limitations
 
 - **"Peacock's dynamic resource package has not been loaded"** — A cosmetic popup that appears once on the hub screen. Click **Cancel** to dismiss. Does not affect gameplay.
@@ -89,6 +117,7 @@ The proxy approach is necessary because the official Peacock Patcher only patche
 Peacock-Mac/
 ├── 1_INSTALL.command   ← Run once to install
 ├── 2_START.command     ← Run before every play session
+├── 3_DIAGNOSE.command  ← Run if something doesn't work
 ├── STOP.command        ← Stop all servers
 └── tools/
     ├── auth-proxy.js        ← Injects JWT tokens into game requests
