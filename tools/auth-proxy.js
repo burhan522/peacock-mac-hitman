@@ -49,7 +49,7 @@ authenticate().then(() => {
         req.on("end", () => {
             const body = Buffer.concat(chunks)
             const headers = Object.assign({}, req.headers)
-            if (!headers["authorization"] && currentJWT)
+            if (currentJWT)
                 headers["authorization"] = "Bearer " + currentJWT
             const proxyReq = http.request(
                 { hostname: "127.0.0.1", port: PEACOCK_PORT, path: req.url, method: req.method, headers },
