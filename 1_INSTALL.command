@@ -116,8 +116,21 @@ step "5/7" "System setup (admin password required)"
 echo "   Required for:"
 echo "   • /etc/hosts  — redirect Hitman domains to localhost"
 echo "   • Keychain    — trust the SSL certificate"
+echo "   • Firewall    — allow Node.js to accept connections"
 echo ""
 sudo -v || fail "Wrong admin password."
+
+# Firewall: allow Node.js (otherwise proxies start but game can't connect)
+FW=/usr/libexec/ApplicationFirewall/socketfilterfw
+BLOCKED=$(sudo "$FW" --listapps 2>/dev/null | grep -B1 "Block" | grep "$NODE" | head -1)
+if [ -n "$BLOCKED" ]; then
+    sudo "$FW" --unblock "$NODE" 2>/dev/null
+    ok "Node.js unblocked in firewall"
+else
+    sudo "$FW" --add "$NODE" 2>/dev/null
+    sudo "$FW" --unblock "$NODE" 2>/dev/null
+    ok "Node.js allowed in firewall"
+fi
 
 # /etc/hosts
 MARKER="# Peacock Hitman WOA"

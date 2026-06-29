@@ -71,8 +71,29 @@ else
 fi
 echo ""
 
-# ── 4. Servers running? ──────────────────────────────────
-echo "[4] Server status"
+# ── 4. Firewall ─────────────────────────────────────────
+echo "[4] macOS Firewall"
+FW=/usr/libexec/ApplicationFirewall/socketfilterfw
+FW_STATE=$(sudo "$FW" --getglobalstate 2>/dev/null)
+if echo "$FW_STATE" | grep -q "disabled\|State = 0"; then
+    ok "Firewall disabled — no issue"
+elif [ -n "$NODE" ]; then
+    warn "Firewall is enabled — checking if Node.js is allowed..."
+    BLOCKED=$(sudo "$FW" --listapps 2>/dev/null | grep -B1 "Block" | grep "$NODE")
+    if [ -n "$BLOCKED" ]; then
+        fail "Node.js is BLOCKED by firewall — proxies start but game can't reach them"
+        echo "      Fix: sudo $FW --unblock \"$NODE\""
+        echo "      Or: System Settings → Network → Firewall → Node.js → Allow"
+    else
+        ok "Node.js allowed in firewall"
+    fi
+else
+    warn "Firewall enabled but Node.js path unknown — check manually"
+fi
+echo ""
+
+# ── 5. Servers running? ──────────────────────────────────
+echo "[5] Server status"
 if pgrep -f "chunk0.js" >/dev/null 2>&1; then
     ok "Peacock (port 3000) running"
     PEACOCK_RESP=$(curl -s --max-time 2 "http://127.0.0.1:3000/" 2>/dev/null | grep -c "Peacock" || echo "0")
